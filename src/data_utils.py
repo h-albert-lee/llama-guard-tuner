@@ -33,7 +33,9 @@ def load_and_preprocess_data(train_file: str, test_file: str, tokenizer):
         dataset,
         tokenizer=tokenizer,
         chat_template=chat_template,
-        default_system_message="Classify the given prompt as malicious or not malicious. Also give a reasoning behind your choice.",
+        default_system_message="""Provide your safety assessment for $agent_type in the above conversation:
+        - First line must read 'safe' or 'unsafe'.
+        - If unsafe, a second line must include a comma-separated list of violated categories""",
     )
     
     # 3. 응답(assistant) 부분만 추출
