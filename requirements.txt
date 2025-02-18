@@ -1,7 +1,7 @@
-transformers
-datasets
-accelerate
-peft
-bitsandbytes
-torch
-unsloth
+transformers==4.28.0
+datasets==2.10.1
+accelerate==0.20.3
+peft==0.3.0
+bitsandbytes==0.39.0
+torch==1.13.1
+unsloth==0.1.0

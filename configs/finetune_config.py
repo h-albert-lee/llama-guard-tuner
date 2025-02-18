@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 
 @dataclass
 class FinetuneConfig:
-    # 공식 문서 예시 모델로 변경
     model_name: str = field(
         default="meta-llama/Llama-Guard-3-1B",
         metadata={"help": "Pretrained LLaMA Guard model name"}
