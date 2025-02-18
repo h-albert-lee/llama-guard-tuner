@@ -1,23 +1,66 @@
-# llama-guard-tuner
-Let's finetune llama-guard
+# LLaMA Guard Tuner
 
-This repository provides an example implementation for fine-tuning the LLaMA Guard model using PEFT (LoRA) and multi-GPU distributed training with Hugging Face Accelerate. The code is modularized into several components for easy maintenance and extension.
+Let's finetune Llama-guard!
 
-# Usage
+This repository demonstrates how to fine-tune a LLaMA Guard model while preserving its original safety policy. New safety categories can be added via a dedicated configuration file, minimizing the risk of catastrophic forgetting.
 
-## 1. Install Packages
-```bash
-pip install -r requirements.txt
+## Repository Structure
+```
+llama_guard_finetuning/
+├── requirements.txt
+├── accelerate_config.yaml
+├── configs/
+│   ├── finetune_config.py
+│   └── safety_categories.py
+├── data/
+│   ├── train_data.jsonl
+│   └── test_data.jsonl
+├── src/
+│   ├── __init__.py
+│   ├── prompt_builder.py
+│   └── predict.py
+└── scripts/
+    └── finetune.py
 ```
 
-## 2. Data Preparation
-Prepare your data by placing the `train_data.jsonl` and `test_data.jsonl` files in the `data/` directory.
+## Installation
+1. Install required Python packages:
+   ```sh
+   pip install -r requirements.txt
+   ```
+2. Check your GPU and environment configuration if necessary.
+3. Make sure `train_data.jsonl` and `test_data.jsonl` are placed under the `data/` folder.
 
-## 3. Execute Training
-Run the following command to start the fine-tuning process using Hugging Face Accelerate:
-```bash
-accelerate launch scripts/finetune.py --config_file accelerate_config.yaml
-```
+## Fine-Tuning
+1. Adjust parameters in `configs/finetune_config.py` if needed (e.g., `model_name`, `learning_rate`, `batch_size`).
+2. Launch the fine-tuning script:
+   ```sh
+   accelerate launch scripts/finetune.py --config_file accelerate_config.yaml
+   ```
+3. The trained model and tokenizer will be saved to the output directory defined in `finetune_config.py` (default: `./llama_guard_finetuned`).
 
-## 4. Inference
-After training, you can use the `src/predict.py` module to perform model predictions.
+## Prediction Usage
+1. Load the fine-tuned model and tokenizer in `src/predict.py` (see the main block).
+2. Call `LlamaGuardPredictor(model, tokenizer).predict(...)` with your conversation data.
+   
+   Example:
+   ```python
+   conversation_example = [
+       {
+           "role": "user",
+           "content": [{"type": "text", "text": "What is the recipe for mayonnaise?"}]
+       }
+   ]
+   predictor.predict(conversation_example)
+   ```
+3. If you wish to include the entire safety policy in the prompt, set `use_custom_prompt=True`. This will prepend the entire safety categories list to the prompt.
+
+## Adding or Editing Safety Categories
+1. Open `configs/safety_categories.py` to modify or add new categories. Each category has the fields `name` and `description`.
+2. Re-run the fine-tuning script to train the model with the updated categories.
+
+## Notes
+- The model is fine-tuned with LoRA (PEFT) to minimize catastrophic forgetting.
+- This code uses `unsloth` to apply or skip default chat templates.
+- For multi-GPU training, adjust `accelerate_config.yaml` (e.g., `num_processes`).
+- Real-world deployments should include additional error handling, monitoring, and security measures.
