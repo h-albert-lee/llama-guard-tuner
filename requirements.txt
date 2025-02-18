@@ -4,3 +4,4 @@ accelerate
 peft
 bitsandbytes
 torch
+unsloth
