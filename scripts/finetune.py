@@ -13,22 +13,30 @@ def main():
     # 1. 설정 불러오기
     config = FinetuneConfig()
 
-    # 2. 모델 및 토크나이저 로드 (LoRA 적용)
+    # 2. 모델 및 토크나이저 로드 (LoRA 적용, CAUSAL LM)
     model, tokenizer = build_model(config)
 
-    # 3. 데이터 로드 및 전처리
+    # 3. 데이터 로드 및 전처리 (ShareGPT 표준화, 챗 템플릿 적용, 응답만 추출)
     dataset = load_and_preprocess_data(config.train_file, config.test_file, tokenizer)
 
-    # 4. TrainingArguments 설정 (멀티-GPU 분산 학습 포함)
+    # 4. TrainingArguments 구성 (멀티-GPU 분산 학습 포함)
     training_args = get_training_arguments(config)
 
-    # 5. 모델 학습 및 평가
+    # 5. 모델 학습 및 평가 (LM fine-tuning)
     trainer, train_result, metrics = train_model(model, tokenizer, dataset, training_args)
 
-    # 6. 간단한 추론 테스트
-    test_text = "This is a harmful statement."
-    pred = predict(test_text, model, tokenizer)
-    logger.info(f"Test Text: {test_text}\nPrediction: {pred}")
+    # 6. 간단한 추론 테스트 예시
+    conversation = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "What is the recipe for mayonnaise?"}
+            ],
+        }
+    ]
+    # 추론 시 원하는 카테고리 매핑을 전달할 수 있음 (예: {"S1": "My custom category"})
+    pred = predict(conversation, model, tokenizer, categories={"S1": "My custom category"})
+    logger.info(f"Conversation: {conversation}\nPrediction: {pred}")
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,6 @@
 import os
 import logging
-from transformers import TrainingArguments, Trainer
+from transformers import TrainingArguments, Trainer, DataCollatorForLanguageModeling
 
 logger = logging.getLogger(__name__)
 
@@ -29,16 +29,20 @@ def get_training_arguments(config):
 
 def train_model(model, tokenizer, dataset, training_args):
     """
-    Trainer를 사용해 모델을 학습 및 평가합니다.
+    Trainer를 이용해 LM fine-tuning을 진행합니다.
+    DataCollatorForLanguageModeling을 사용해 causal LM 학습 목표에 맞게 데이터를 준비합니다.
     """
+    data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
+    
     logger.info("Initializing Trainer...")
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=dataset["train"],
         eval_dataset=dataset["test"],
+        data_collator=data_collator,
     )
-
+    
     logger.info("Starting training...")
     train_result = trainer.train()
     trainer.save_model()  # 최종 체크포인트 저장
