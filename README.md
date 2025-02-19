@@ -55,6 +55,14 @@ llama_guard_finetuning/
    ```
 3. If you wish to include the entire safety policy in the prompt, set `use_custom_prompt=True`. This will prepend the entire safety categories list to the prompt.
 
+### Client Usage
+Start your vLLM Serve endpoint (e.g., http://localhost:8000).
+Run the client script with:
+```sh
+    python client.py
+```
+The client sends a sample conversation (with the full safety policy) to the API and prints the assistant's response.
+
 ## Adding or Editing Safety Categories
 1. Open `configs/safety_categories.py` to modify or add new categories. Each category has the fields `name` and `description`.
 2. Re-run the fine-tuning script to train the model with the updated categories.
