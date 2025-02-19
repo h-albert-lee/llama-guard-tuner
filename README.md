@@ -4,24 +4,6 @@ Let's finetune Llama-guard!
 
 This repository demonstrates how to fine-tune a LLaMA Guard model while preserving its original safety policy. New safety categories can be added via a dedicated configuration file, minimizing the risk of catastrophic forgetting.
 
-## Repository Structure
-```
-llama_guard_finetuning/
-├── requirements.txt
-├── accelerate_config.yaml
-├── configs/
-│   ├── finetune_config.py
-│   └── safety_categories.py
-├── data/
-│   ├── train_data.jsonl
-│   └── test_data.jsonl
-├── src/
-│   ├── __init__.py
-│   ├── prompt_builder.py
-│   └── predict.py
-└── scripts/
-    └── finetune.py
-```
 
 ## Installation
 1. Install required Python packages:
