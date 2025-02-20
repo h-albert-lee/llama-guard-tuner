@@ -3,38 +3,32 @@ import logging
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, Trainer
 from peft import LoraConfig, get_peft_model, TaskType
-from src.prompt_builder import build_training_prompt, AgentType, ConversationTurn, load_safety_categories
+from src.prompt_builder import build_training_prompt, AgentType, load_safety_categories
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def load_and_preprocess_data(train_file: str, test_file: str, tokenizer):
     """
-    학습 데이터를 불러오고, 각 예제에 대해 전체 시스템 프롬프트(안전 정책 + 전체 카테고리 목록)와
-    사용자 대화(assistant 응답 포함)를 하나의 입력 텍스트로 구성합니다.
-    단, 학습 목표는 어시스턴트 응답 부분에만 집중하도록 (train only on response) label 마스킹을 적용합니다.
+    학습 데이터를 불러오고, 각 예제에 대해 전체 프롬프트를 구성합니다.
+    전체 프롬프트는 시스템 프롬프트(안전 정책 및 전체 카테고리 목록)와
+    대화 부분("User: ...\nAgent: ...")으로 이루어집니다.
+    단, "train only on response" 전략을 적용해, 어시스턴트 응답 부분만을 학습 대상으로 합니다.
     """
     dataset = load_dataset("json", data_files={"train": train_file, "test": test_file})
     
     def preprocess_example(example):
         try:
             user_text = example["conversation"][0]["content"][0]["text"]
-            assistant_text = example["conversation"][1]["content"][0]["text"]
+            agent_text = example["conversation"][1]["content"][0]["text"]
         except (KeyError, IndexError):
             logger.error("Malformed conversation: %s", example)
             return example
         
-        # 대화 목록 구성 (User 메시지와 Assistant 응답)
-        conv_turns = [
-            ConversationTurn(message=user_text, agent_type=AgentType.USER),
-            ConversationTurn(message=assistant_text, agent_type=AgentType.AGENT)
-        ]
-        # safety_categories를 config로부터 로드
         safety_categories = load_safety_categories()
-        # 전체 프롬프트 생성 (시스템 프롬프트 포함)
         full_prompt = build_training_prompt(
-            agent_type=AgentType.AGENT,
-            conversations=conv_turns,
+            user_text=user_text,
+            agent_text=agent_text,
             categories=safety_categories,
             category_short_name_prefix="S",
             with_policy=True
@@ -42,12 +36,11 @@ def load_and_preprocess_data(train_file: str, test_file: str, tokenizer):
         tokenized = tokenizer(full_prompt, truncation=True, padding="max_length", max_length=512)
         input_ids = tokenized["input_ids"]
 
-        # "train only on response": 어시스턴트 응답 부분만 학습 대상으로 남김.
-        # 어시스턴트 응답은 시스템 프롬프트 뒤, "<|start_header_id|>assistant<|end_header_id|>" 토큰 뒤에 위치합니다.
-        assistant_delim = "<|start_header_id|>assistant<|end_header_id|>"
-        delim_ids = tokenizer(assistant_delim, add_special_tokens=False)["input_ids"]
+        # "train only on response": 어시스턴트 응답 부분만 학습 대상(label)으로 남김.
+        # 어시스턴트 응답은 대화 템플릿에서 "Agent:"로 시작합니다.
+        agent_delim = "Agent:"
+        delim_ids = tokenizer(agent_delim, add_special_tokens=False)["input_ids"]
 
-        # delim_ids가 input_ids 내에 존재하는 위치 찾기
         start_index = -1
         for i in range(len(input_ids) - len(delim_ids) + 1):
             if input_ids[i:i+len(delim_ids)] == delim_ids:
@@ -55,20 +48,17 @@ def load_and_preprocess_data(train_file: str, test_file: str, tokenizer):
                 break
 
         if start_index == -1:
-            logger.error("Assistant delimiter not found in prompt: %s", full_prompt)
-            # fallback: 전체 프롬프트를 학습 대상으로 사용 (권장하지 않음)
+            logger.error("Agent delimiter not found in prompt: %s", full_prompt)
             labels = input_ids.copy()
         else:
-            # assistant 응답 전까지는 -100 (loss 계산 제외)
             labels = [-100] * start_index + input_ids[start_index:]
-            labels = labels[:len(input_ids)]  # 길이 맞추기
+            labels = labels[:len(input_ids)]
 
         example["input_ids"] = input_ids
         example["labels"] = labels
         return example
 
     dataset = dataset.map(preprocess_example)
-    # 학습에 필요한 열만 남김 (input_ids, labels)
     dataset = dataset.remove_columns([col for col in dataset["train"].column_names if col not in ["input_ids", "labels"]])
     dataset.set_format("torch")
     return dataset
@@ -127,8 +117,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-        
