@@ -16,6 +16,8 @@ class SafetyCategory:
     name: str
     description: str
 
+AGENT_SPECIAL_TOKEN = "[AGENT]"
+
 # 간단하게 구성한 대화 템플릿 (User/Agent 형식)
 # 시스템 프롬프트는 안전 정책과 전체 카테고리 목록을 포함합니다.
 SYSTEM_MESSAGE = (
@@ -34,7 +36,7 @@ SYSTEM_PROMPT_TEMPLATE = Template(
 # 대화 템플릿: User와 Agent 메시지를 명시적으로 구분합니다.
 CONVERSATION_TEMPLATE = Template(
     "User: $user_text\n"
-    "Agent: $agent_text"
+    f"{AGENT_SPECIAL_TOKEN} $agent_text"
 )
 
 def load_safety_categories() -> List[SafetyCategory]:

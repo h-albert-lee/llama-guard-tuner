@@ -4,6 +4,7 @@ from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, Trainer
 from peft import LoraConfig, get_peft_model, TaskType
 from src.prompt_builder import build_training_prompt, AgentType, load_safety_categories
+import torch
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -65,18 +66,27 @@ def load_and_preprocess_data(train_file: str, test_file: str, tokenizer):
 
 def build_model(config):
     tokenizer = AutoTokenizer.from_pretrained(config.model_name)
+    # 패딩 토큰이 없는 경우 추가
+    if tokenizer.pad_token is None:
+        tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+    # "[AGENT]" special token이 없으면 추가
+    if "[AGENT]" not in tokenizer.additional_special_tokens:
+        tokenizer.add_special_tokens({"additional_special_tokens": ["[AGENT]"]})
     model = AutoModelForCausalLM.from_pretrained(
         config.model_name,
-        torch_dtype="bfloat16",
-        device_map="auto",
+        torch_dtype=torch.float32,
+        device_map="auto"
     )
+    # 모델의 임베딩 크기를 새 tokenizer에 맞게 확장
+    model.resize_token_embeddings(len(tokenizer))
+    logger.info(f"Model vocab size: {model.config.vocab_size}, Tokenizer length: {len(tokenizer)}")
+    # LoRA 구성 적용
     lora_config = LoraConfig(
         task_type=TaskType.CAUSAL_LM,
         r=8,
         lora_alpha=32,
         lora_dropout=0.1,
-        target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
-                      "gate_proj", "up_proj", "down_proj"],
+        target_modules=["q_proj", "v_proj"],
     )
     model = get_peft_model(model, lora_config)
     return model, tokenizer
