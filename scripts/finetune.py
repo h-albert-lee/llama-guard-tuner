@@ -86,7 +86,8 @@ def build_model(config):
         r=8,
         lora_alpha=32,
         lora_dropout=0.1,
-        target_modules=["q_proj", "v_proj"],
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
+                      "gate_proj", "up_proj", "down_proj"],
     )
     model = get_peft_model(model, lora_config)
     return model, tokenizer
