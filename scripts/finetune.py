@@ -64,6 +64,12 @@ def load_and_preprocess_data(train_file: str, test_file: str, tokenizer):
     dataset.set_format("torch")
     return dataset
 
+def print_trainable_parameters(model):
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total_params = sum(p.numel() for p in model.parameters())
+    logger.info(f"Trainable params: {trainable_params} / {total_params} ({100 * trainable_params / total_params:.2f}%)")
+
+
 def build_model(config):
     tokenizer = AutoTokenizer.from_pretrained(config.model_name)
     # 패딩 토큰이 없는 경우 추가
@@ -75,7 +81,7 @@ def build_model(config):
     model = AutoModelForCausalLM.from_pretrained(
         config.model_name,
         torch_dtype=torch.float32,
-        device_map="auto"
+        # device_map="auto" # should be removed when using accelerate
     )
     # 모델의 임베딩 크기를 새 tokenizer에 맞게 확장
     model.resize_token_embeddings(len(tokenizer))
@@ -90,6 +96,7 @@ def build_model(config):
                       "gate_proj", "up_proj", "down_proj"],
     )
     model = get_peft_model(model, lora_config)
+    print_trainable_parameters(model)
     return model, tokenizer
 
 def get_training_args(config):
