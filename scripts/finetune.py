@@ -55,6 +55,15 @@ def load_and_preprocess_data(train_file: str, test_file: str, tokenizer):
             labels = [-100] * start_index + input_ids[start_index:]
             labels = labels[:len(input_ids)]
 
+        eos_token_id = tokenizer.eos_token_id
+        if labels[-1] != eos_token_id:
+            labels.append(eos_token_id)
+        # Adjust labels length to match input_ids length
+        if len(labels) > len(input_ids):
+            labels = labels[:len(input_ids)]
+        elif len(labels) < len(input_ids):
+            labels = labels + [-100] * (len(input_ids) - len(labels))
+
         example["input_ids"] = input_ids
         example["labels"] = labels
         return example
