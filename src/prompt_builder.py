@@ -51,21 +51,27 @@ def build_training_prompt(user_text: str, agent_text: str, categories: List[Safe
                           category_short_name_prefix: str = "S", with_policy: bool = True) -> str:
     """
     학습용 전체 프롬프트를 구성합니다.
-    - 시스템 프롬프트: 안전 정책 및 전체 카테고리 목록(각 카테고리는 "S번호: 이름" 형식으로 표시됨)
-    - 대화: "User: ..."와 "Agent: ..." 형식으로 구성
+    시스템 프롬프트에는 안전 정책과 전체 카테고리 목록이 포함되고,
+    대화 부분은 "User:"와 special token "[AGENT]" 형식으로 구성됩니다.
     """
+    user_text = user_text if user_text is not None else ""
+    agent_text = agent_text if agent_text is not None else ""
+    
     categories_str = "\n".join([
-        f"{category_short_name_prefix}{i+1}: {c.name}" +
-        (f"\n{c.description}" if with_policy else "")
+        f"{category_short_name_prefix}{i+1}: {c.name}" + (f"\n{c.description}" if with_policy else "")
         for i, c in enumerate(categories)
     ])
     system_part = SYSTEM_PROMPT_TEMPLATE.substitute(
         system_message=SYSTEM_MESSAGE,
         categories=categories_str
     )
-    conversation_part = CONVERSATION_TEMPLATE.substitute(
-        user_text=user_text,
-        agent_text=agent_text
-    )
+    try:
+        conversation_part = CONVERSATION_TEMPLATE.substitute(
+            user_text=user_text,
+            agent_text=agent_text
+        )
+    except KeyError as ke:
+        logger.exception("Template substitution failed, missing key: %s", ke)
+        raise
     full_prompt = system_part + conversation_part
     return full_prompt
