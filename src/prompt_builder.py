@@ -33,7 +33,9 @@ SYSTEM_PROMPT_TEMPLATE = Template(
 
 # 대화 템플릿: User와 Agent 메시지를 구분합니다.
 CONVERSATION_TEMPLATE = Template(
-    "User: $user_text\n"
+    "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n"
+    "$user_text\n"
+    "<|eot_id|>\n"
     "$agent_special_token\n"
     "<|begin_of_text|><|start_header_id|>assistant<|end_header_id|>\n"
     "$agent_text\n"
