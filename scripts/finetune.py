@@ -38,8 +38,8 @@ def load_and_preprocess_data(train_file: str, test_file: str, tokenizer):
         input_ids = tokenized["input_ids"]
 
         # "train only on response": 어시스턴트 응답 부분만 학습 대상(label)으로 남김.
-        # 어시스턴트 응답은 대화 템플릿에서 "Agent:"로 시작합니다.
-        agent_delim = "Agent:"
+        # 어시스턴트 응답은 대화 템플릿에서 "[AGENT]" 혹은 "Agent:"로 시작합니다.
+        agent_delim = "[AGENT]" #
         delim_ids = tokenizer(agent_delim, add_special_tokens=False)["input_ids"]
 
         start_index = -1
